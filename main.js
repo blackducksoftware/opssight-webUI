@@ -74,10 +74,7 @@ function renderViews(){
   var htmlText = "";
   var selectionReady = true;
   for(s in selectors){
-    if(s in selection){
-      // console.log(s + ' in ' + selection)
-    }else{
-      // console.log(s + ' not in ' + selection)
+    if(!(s in selection)){
       selectionReady = false;
     }
   }
@@ -118,20 +115,22 @@ function renderViews(){
   if(pod_to_nodeMapping === ""){
     htmlText = "<pre>pod-to-node mapping hasn't loaded yet</pre>";
   }else{
+    console.log(window.innerWidth);
+    console.log();
+    var dimensions = Math.min(window.innerHeight, document.getElementsByTagName("body")[0].clientWidth);
     htmlText = ""
-    console.log(window.innerWidth, window.innerHeight);
     htmlText += 
       '<svg width="' +
-      (window.innerHeight * 0.95) + 
+      dimensions + 
       '" height="' + 
-      (window.innerHeight * 0.95) + 
+      dimensions + 
       '" id="circleView_svg" onload="circleView();">' + 
       '</svg>';
 		htmlText +=
       '<svg width="' +
-      (window.innerWidth * 0.95) + 
+      dimensions + 
       '" height="' + 
-      (window.innerHeight * 0.95) + 
+      dimensions + 
       '" id="squareView_svg" onload="squareView();">' + 
       '</svg>';
   }
@@ -195,18 +194,20 @@ function renderViews(){
 }
 
 function coreModelPodName(nodeMapPodName){
-  console.log(JSON.stringify(model.CoreModel.Pods))
+  var fail = [];
+  fail.push(JSON.stringify(model.CoreModel.Pods))
   for(p in 
     model.
     CoreModel.
     Pods)
   {
     noNameSpace = p.split('/')[1];
-    console.log(noNameSpace, nodeMapPodName)
+    fail.push(p, noNameSpace, nodeMapPodName)
     if(noNameSpace == nodeMapPodName){
       return p;
     }
   }
+  //console.log(fail);
   return "I have no idea what this pod's namespace is"
 }
 
