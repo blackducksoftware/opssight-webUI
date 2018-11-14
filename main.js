@@ -1,5 +1,9 @@
 var selectors = {};
 // First one is default
+selectors["organization"] = [
+  "node",
+  "namespace"
+];
 selectors["category"] = [
   "VULNERABILITY", 
   "ACTIVITY", 
@@ -13,11 +17,13 @@ selectors["severity"] = [
   "MEDIUM", 
   "OK", 
   "UNKNOWN"
-]
-selectors["organization"] = [
-  "node",
-  "namespace"
-]
+];
+selectors["image id"] = [
+  "repo basename",
+  "repo full name",
+  "truncated SHA",
+  "full SHA"
+];
 
 var selection = {};
 
@@ -28,7 +34,6 @@ function main() {
     makeSelector(k, selectors[k]);
     selection = changeSelection(k, selectors[k][0]);
   }
-  settingsReady = true;
   renderViews();
 }
 
@@ -86,7 +91,6 @@ function getVulnsFromImageSHA(imageSHA){
 }
 
 function renderViews(){
-  // Image view:
   var htmlText = "";
   var selectionReady = true;
   for(s in selectors){
@@ -95,28 +99,35 @@ function renderViews(){
     }
   }
   if(selectionReady === false){
-    htmlText = "Trying to render Image view but settings aren't ready";
+    htmlText = "Selections aren't ready, can't render yet.";
+    document.getElementById('message').innerHTML = htmlText;
+    return;
   }else{
-    htmlText = [
-      "<table>", 
-      "<th>Image</th>", 
-      "<th>Instances</th>",
-      "<th>" + selection["severity"] + ' severity ' + selection["category"] + " count</th>", 
-      "<th>Production datacenter impact factor</th>"
-    ].join('');
-    for(var i in model.CoreModel.Images){
-      var instances = countImageInstances(i, model.CoreModel.Pods);
-      var statusCounts = getVulnsFromImageSHA(i);
-      var product = instances * statusCounts;
-      htmlText += "<tr>";
-      htmlText += "<td class='monospace'>" + i + "</td>";
-      htmlText += "<td>" + instances + "</td>";
-      htmlText += "<td>" + statusCounts + "</td>";
-      htmlText += "<td>" + product + "</td>";
-      htmlText += "</tr>";
-    }
-    htmlText += "</table>";
+    htmlText = ""
+    document.getElementById('message').innerHTML = htmlText;
   }
+
+  // Image view:
+  var htmlText = "";
+  htmlText = [
+    "<table>", 
+    "<th>Image</th>", 
+    "<th>Instances</th>",
+    "<th>" + selection["severity"] + ' severity ' + selection["category"] + " count</th>", 
+    "<th>Production datacenter impact factor</th>"
+  ].join('');
+  for(var i in model.CoreModel.Images){
+    var instances = countImageInstances(i, model.CoreModel.Pods);
+    var statusCounts = getVulnsFromImageSHA(i);
+    var product = instances * statusCounts;
+    htmlText += "<tr>";
+    htmlText += "<td class='monospace'>" + i + "</td>";
+    htmlText += "<td>" + instances + "</td>";
+    htmlText += "<td>" + statusCounts + "</td>";
+    htmlText += "<td>" + product + "</td>";
+    htmlText += "</tr>";
+  }
+  htmlText += "</table>";
   document.getElementById('imageView').innerHTML = htmlText;
 
   // Hierarchical view
