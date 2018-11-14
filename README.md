@@ -1,6 +1,9 @@
 # opssight-webUI
 A web-based interface for exploring OpsSight output
 
+# Demo
+[https://blackducksoftware.github.io/opssight-webUI/](https://blackducksoftware.github.io/opssight-webUI/)
+
 # Goals
 v0.1 is an HTML5 webpage that provides several different visualizations for pre-generated scan results in OpsSight
 
