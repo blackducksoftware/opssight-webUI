@@ -14,6 +14,10 @@ selectors["severity"] = [
   "OK", 
   "UNKNOWN"
 ]
+selectors["organization"] = [
+  "node",
+  "namespace"
+]
 
 var selection = {};
 
@@ -69,6 +73,18 @@ function updateSelector(name, selection){
   }
 }
 
+function getVulnsFromImageSHA(imageSHA){
+  var count = 
+    model.
+    CoreModel.
+    Images[imageSHA].
+    ScanResults.
+    RiskProfile.
+    Categories[selection["category"]].
+    StatusCounts[selection["severity"]];
+  return count;
+}
+
 function renderViews(){
   // Image view:
   var htmlText = "";
@@ -90,14 +106,7 @@ function renderViews(){
     ].join('');
     for(var i in model.CoreModel.Images){
       var instances = countImageInstances(i, model.CoreModel.Pods);
-      var statusCounts = 
-        model.
-        CoreModel.
-        Images[i].
-        ScanResults.
-        RiskProfile.
-        Categories[selection["category"]].
-        StatusCounts[selection["severity"]];
+      var statusCounts = getVulnsFromImageSHA(i);
       var product = instances * statusCounts;
       htmlText += "<tr>";
       htmlText += "<td class='monospace'>" + i + "</td>";
@@ -110,13 +119,11 @@ function renderViews(){
   }
   document.getElementById('imageView').innerHTML = htmlText;
 
-  // // Node view:
+  // Hierarchical view
   var htmlText = "";
   if(pod_to_nodeMapping === ""){
     htmlText = "<pre>pod-to-node mapping hasn't loaded yet</pre>";
   }else{
-    console.log(window.innerWidth);
-    console.log();
     var dimensions = Math.min(window.innerHeight, document.getElementsByTagName("body")[0].clientWidth);
     htmlText = ""
     htmlText += 
@@ -138,17 +145,16 @@ function renderViews(){
   treeForD3 = {};
   treeForD3["name"] = "cluster";
   treeForD3["children"] = [];
-  // console.log(pod_to_nodeMapping);
   var nodeIndex = 0;
   for(var n in pod_to_nodeMapping){
     var treeNode = {};
-    treeNode["name"] = "node " + n;
+    treeNode["name"] = n;
     treeNode["children"] = [];
     treeForD3["children"].push(treeNode);
     var podIndex = 0;
     for(var p in pod_to_nodeMapping[n]){
       var treePod = {};
-      treePod["name"] = "pod " + p;
+      treePod["name"] = p;
       if(coreModelPodName(p) == "I have no idea what this pod's namespace is"){
         treePod["size"] = 1;
         console.log("============failed to find" + p);
@@ -162,15 +168,23 @@ function renderViews(){
           Containers)
         {
           var treeContainer = {};
-          treeContainer["name"] = "container " + 
+          console.log(model.CoreModel.Pods, coreModelPodName(p))
+          treeContainer["name"] = 
             model.
             CoreModel.
-            Pods.
-            coreModelPodName.
+            Pods[coreModelPodName(p)].
             Containers[c].
             Name;
-          treeContainer["size"] = 1;
-          treeContainer["children"][nodeIndex]["children"][podIndex]["children"].push(treeContainer);
+          var imageSHA = 
+            model.
+            CoreModel.
+            Pods[coreModelPodName(p)].
+            Containers[c].
+            Image["Sha"];
+          treeContainer["size"] = getVulnsFromImageSHA(imageSHA);
+          console.log(imageSHA, treeContainer["size"]);
+          console.log(treeForD3)
+          treePod["children"].push(treeContainer);
           containerIndex++;
         }
       }
@@ -194,20 +208,16 @@ function renderViews(){
 }
 
 function coreModelPodName(nodeMapPodName){
-  var fail = [];
-  fail.push(JSON.stringify(model.CoreModel.Pods))
   for(p in 
     model.
     CoreModel.
     Pods)
   {
     noNameSpace = p.split('/')[1];
-    fail.push(p, noNameSpace, nodeMapPodName)
     if(noNameSpace == nodeMapPodName){
       return p;
     }
   }
-  //console.log(fail);
   return "I have no idea what this pod's namespace is"
 }
 
