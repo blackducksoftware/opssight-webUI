@@ -90,6 +90,29 @@ function getVulnsFromImageSHA(imageSHA){
   return count;
 }
 
+function truncateSha(imageSHA){
+  var truncated = 
+    imageSHA.substring(0, 4) + 
+    "\u2026" + 
+    imageSHA.substring(60, 64);
+  return truncated;
+}
+
+function repoNameOfImageSHA(imageSHA){
+  var repoName = 
+    model.
+    CoreModel.
+    Images[imageSHA].
+    RepoTags[0].
+    Repository;
+  return repoName;
+}
+
+function basenameOfRepoName(repoName){
+  var baseName = repoName.split("/").pop();
+  return baseName;
+}
+
 function renderViews(){
   var htmlText = "";
   var selectionReady = true;
@@ -117,11 +140,17 @@ function renderViews(){
     "<th>Production datacenter impact factor</th>"
   ].join('');
   for(var i in model.CoreModel.Images){
+    var displayName = {}
+    displayName["full SHA"] = i;
+    displayName["truncated SHA"] = truncateSha(displayName["full SHA"]);
+    displayName["repo full name"] = repoNameOfImageSHA(displayName["full SHA"]);
+    displayName["repo basename"] = basenameOfRepoName(displayName["repo full name"]);
+    nameToDisplay = displayName[selection["image id"]];
     var instances = countImageInstances(i, model.CoreModel.Pods);
     var statusCounts = getVulnsFromImageSHA(i);
     var product = instances * statusCounts;
     htmlText += "<tr>";
-    htmlText += "<td class='monospace'>" + i + "</td>";
+    htmlText += "<td class='monospace'>" + nameToDisplay + "</td>";
     htmlText += "<td>" + instances + "</td>";
     htmlText += "<td>" + statusCounts + "</td>";
     htmlText += "<td>" + product + "</td>";
@@ -179,7 +208,6 @@ function renderViews(){
           Containers)
         {
           var treeContainer = {};
-          console.log(model.CoreModel.Pods, coreModelPodName(p))
           treeContainer["name"] = 
             model.
             CoreModel.
@@ -193,8 +221,6 @@ function renderViews(){
             Containers[c].
             Image["Sha"];
           treeContainer["size"] = getVulnsFromImageSHA(imageSHA);
-          console.log(imageSHA, treeContainer["size"]);
-          console.log(treeForD3)
           treePod["children"].push(treeContainer);
           containerIndex++;
         }
