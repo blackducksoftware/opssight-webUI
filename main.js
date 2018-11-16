@@ -182,66 +182,91 @@ function renderViews(){
       '</svg>';
   }
   document.getElementById('nodeView').innerHTML = htmlText;
-  treeForD3 = {};
-  treeForD3["name"] = "cluster";
-  treeForD3["children"] = [];
-  var nodeIndex = 0;
-  for(var n in pod_to_nodeMapping){
-    var treeNode = {};
-    treeNode["name"] = n;
-    treeNode["children"] = [];
-    treeForD3["children"].push(treeNode);
-    var podIndex = 0;
-    for(var p in pod_to_nodeMapping[n]){
-      var treePod = {};
-      treePod["name"] = p;
-      if(coreModelPodName(p) == "I have no idea what this pod's namespace is"){
-        treePod["size"] = 1;
-        console.log("============failed to find" + p);
-      }else{
-        treePod["children"] = [];
-        var containerIndex = 0;
-        for(var c in 
-          model.
-          CoreModel.
-          Pods[coreModelPodName(p)].
-          Containers)
-        {
-          var treeContainer = {};
-          treeContainer["name"] = 
-            model.
-            CoreModel.
-            Pods[coreModelPodName(p)].
-            Containers[c].
-            Name;
-          var imageSHA = 
-            model.
-            CoreModel.
-            Pods[coreModelPodName(p)].
-            Containers[c].
-            Image["Sha"];
-          treeContainer["size"] = getVulnsFromImageSHA(imageSHA);
-          treePod["children"].push(treeContainer);
-          containerIndex++;
-        }
-      }
-      treeForD3["children"][nodeIndex]["children"].push(treePod);
-      podIndex++;
-    }
-    nodeIndex++;
-  }
-  circleView(treeForD3);
-  // squareView(treeForD3);
-  // nodeIssues = {}
-  // for(n in nodes){
-  //   nodeIssues[n]
-  //   for(p in pods){
-  //     if(pod[p] in n){
-  //       nodaddIssues(imageOfPod(pod[p]), 
+  circleView(makeD3Cluster());
+}
 
-  // Hierarchical list
-  // make an alt model
-  //
+function makeD3Cluster(){
+  cluster = {}
+  cluster["name"] = "cluster";
+  cluster["children"] = [];
+  if(selection["organization"] == "node"){
+    for(var nodeName in pod_to_nodeMapping){
+      cluster["children"].push(makeD3Node(nodeName));
+    }
+  }
+  if(selection["organization"] == "namespace"){
+    nameSpaces = nameSpacesOfAllPods(model.CoreModel.Pods);
+    for(var nameSpaceName in nameSpaces){
+      cluster["children"].push(makeD3NameSpace(nameSpaces, nameSpaceName));
+    }
+  }
+  return cluster;
+}
+
+function makeD3Node(nodeName){
+  var node = {};
+  node["name"] = nodeName;
+  node["children"] = [];
+  for(var podName in pod_to_nodeMapping[nodeName]){
+    podName = coreModelPodName(podName);
+    node["children"].push(makeD3Pod(podName));
+  }
+  return node;
+}
+
+function makeD3NameSpace(nameSpaces, nameSpaceName){
+  var nameSpace = {}
+  nameSpace["name"] = nameSpaceName;
+  nameSpace["children"] = [];
+  for(var podName in nameSpaces[nameSpaceName]){
+    nameSpace["children"].push(makeD3Pod(podName));
+  }
+  return nameSpace;
+}
+
+function nameSpacesOfAllPods(allPods){
+  nameSpaces = {};
+  for(pod in allPods){
+    var nameSpace = pod.split("/")[0];
+    if(!(nameSpace in nameSpaces)){
+      nameSpaces[nameSpace] = {};
+    }
+    nameSpaces[nameSpace][pod] = undefined;
+  }
+  return nameSpaces;
+}
+
+function makeD3Pod(podName){
+  var pod = {};
+  pod["name"] = podName;
+  pod["children"] = [];
+  for(var containerIndex in 
+    model.
+    CoreModel.
+    Pods[podName].
+    Containers)
+  {
+    pod["children"].push(makeD3Container(podName, containerIndex));
+  }
+  return pod;
+}
+
+function makeD3Container(podName, containerIndex){
+  var container = {};
+  container["name"] = 
+    model.
+    CoreModel.
+    Pods[podName].
+    Containers[containerIndex].
+    Name;
+  var imageSHA = 
+    model.
+    CoreModel.
+    Pods[podName].
+    Containers[containerIndex].
+    Image["Sha"];
+  container["size"] = getVulnsFromImageSHA(imageSHA);
+  return container;
 }
 
 function coreModelPodName(nodeMapPodName){
